@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU UPC Reduce Latency Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University. 
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)

@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU MPI Multiple Bandwidth / Message Rate Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University. 
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -28,17 +28,6 @@
 #define WINDOW_SIZES_COUNT   (5)
 
 #define MAX_MSG_SIZE         (1<<22)
-#define MAX_ALIGNMENT        (65536)
-#define MY_BUF_SIZE (MAX_MSG_SIZE + MAX_ALIGNMENT)
-
-char s_buf1[MY_BUF_SIZE];
-char r_buf1[MY_BUF_SIZE];
-
-MPI_Request * request;
-MPI_Status * reqstat;
-
-double calc_bw(int rank, int size, int num_pairs, int window_size, char *s_buf, char *r_buf);
-void usage();
 
 #ifdef PACKAGE_VERSION
 #   define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
@@ -46,23 +35,29 @@ void usage();
 #   define HEADER "# " BENCHMARK "\n"
 #endif
 
-#ifndef FIELD_WIDTH
-#   define FIELD_WIDTH 20
-#endif
+MPI_Request * request;
+MPI_Status * reqstat;
 
-#ifndef FLOAT_PRECISION
-#   define FLOAT_PRECISION 2
-#endif
+double calc_bw(int rank, int size, int num_pairs, int window_size, char *s_buf, char *r_buf);
+void usage();
+
+static int loop;
+static int skip;
+static int loop_override;
+static int skip_override;
 
 int main(int argc, char *argv[])
 {
     char *s_buf, *r_buf;
-
-    int numprocs, rank, align_size;
+    unsigned long align_size = sysconf(_SC_PAGESIZE);
+    int numprocs, rank;
     int pairs, print_rate;
     int window_size, window_varied;
     int c, curr_size;
 
+    loop_override = 0;
+    skip_override = 0;
+    
     MPI_Init(&argc, &argv);
 
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -74,8 +69,16 @@ int main(int argc, char *argv[])
     window_varied    = 0;
     print_rate       = 1;
 
-    while((c = getopt(argc, argv, "p:w:r:vh")) != -1) {
+    while((c = getopt(argc, argv, "p:w:r:x:i:vh")) != -1) {
         switch (c) {
+            case 'i':
+                loop = atoi(optarg);
+                loop_override = 1;
+                break;
+            case 'x':
+                skip = atoi(optarg);
+                skip_override = 1;
+                break;
             case 'p':
                 pairs = atoi(optarg);
 
@@ -119,15 +122,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    align_size = getpagesize();
-    assert(align_size <= MAX_ALIGNMENT);
+    if (posix_memalign((void**)&s_buf, align_size, MAX_MSG_SIZE)) {
+        fprintf(stderr, "Error allocating host memory\n");
+        return 1;
+    }
 
-    s_buf =
-        (char *) (((unsigned long) s_buf1 + (align_size - 1)) /
-                  align_size * align_size);
-    r_buf =
-        (char *) (((unsigned long) r_buf1 + (align_size - 1)) /
-                  align_size * align_size);
+    if (posix_memalign((void**)&r_buf, align_size, MAX_MSG_SIZE)) {
+        fprintf(stderr, "Error allocating host memory\n");
+        return 1;
+    }
 
     if(numprocs < 2) {
         if(rank == 0) {
@@ -279,6 +282,9 @@ int main(int argc, char *argv[])
    }
 
 error:
+   free(r_buf);
+   free(s_buf);
+
    MPI_Finalize();
 
    return EXIT_SUCCESS;
@@ -304,7 +310,6 @@ double calc_bw(int rank, int size, int num_pairs, int window_size, char *s_buf,
 {
     double t_start = 0, t_end = 0, t = 0, sum_time = 0, bw = 0;
     int i, j, target;
-    int loop, skip;
     int mult = (DEFAULT_WINDOW / window_size) > 0 ? (DEFAULT_WINDOW /
             window_size) : 1;
 
@@ -313,23 +318,25 @@ double calc_bw(int rank, int size, int num_pairs, int window_size, char *s_buf,
         r_buf[i] = 'b';
     }
 
-    if(size > LARGE_THRESHOLD) {
-        loop = ITERS_LARGE * mult;
-        skip = WARMUP_ITERS_LARGE * mult;
-    }
+    if(!loop_override || !skip_override) {
+        if(size > LARGE_THRESHOLD) {
+             loop = ITERS_LARGE * mult;
+             skip = WARMUP_ITERS_LARGE * mult;
+        }
 
-    else {
-        loop = ITERS_SMALL * mult;
-        skip = WARMUP_ITERS_SMALL * mult;
+        else {
+             loop = ITERS_SMALL * mult;
+             skip = WARMUP_ITERS_SMALL * mult;
+        }
     }
-
+    
     MPI_Barrier(MPI_COMM_WORLD);
 
     if(rank < num_pairs) {
         target = rank + num_pairs;
 
-        for(i = 0; i < loop + skip; i++) {
-            if(i == skip) {
+        for(i = 0; i <  loop +  skip; i++) {
+            if(i ==  skip) {
                 MPI_Barrier(MPI_COMM_WORLD);
                 t_start = MPI_Wtime();
             }
@@ -351,8 +358,8 @@ double calc_bw(int rank, int size, int num_pairs, int window_size, char *s_buf,
     else if(rank < num_pairs * 2) {
         target = rank - num_pairs;
 
-        for(i = 0; i < loop + skip; i++) {
-            if(i == skip) {
+        for(i = 0; i <  loop +  skip; i++) {
+            if(i ==  skip) {
                 MPI_Barrier(MPI_COMM_WORLD);
             }
 
@@ -376,7 +383,7 @@ double calc_bw(int rank, int size, int num_pairs, int window_size, char *s_buf,
         double tmp = size / 1e6 * num_pairs ;
         
         sum_time /= num_pairs;
-        tmp = tmp * loop * window_size;
+        tmp = tmp *  loop * window_size;
         bw = tmp / sum_time;
 
         return bw;

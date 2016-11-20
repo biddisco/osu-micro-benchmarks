@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU OpenSHMEM Broadcast Latency Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University. 
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     char *buffer=NULL;
     int max_msg_size = 1048576, full = 0;
     int t;
-
+	
     for ( t = 0; t < _SHMEM_BCAST_SYNC_SIZE; t += 1) pSyncBcast1[t] = _SHMEM_SYNC_VALUE;
     for ( t = 0; t < _SHMEM_BCAST_SYNC_SIZE; t += 1) pSyncBcast2[t] = _SHMEM_SYNC_VALUE;
     for ( t = 0; t < _SHMEM_REDUCE_SYNC_SIZE; t += 1) pSyncRed1[t] = _SHMEM_SYNC_VALUE;
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     rank = _my_pe();
     numprocs = _num_pes();
 
-    if (process_args(argc, argv, rank, &max_msg_size, &full)) {
+    if (process_args(argc, argv, rank, &max_msg_size, &full, HEADER)) {
         return 0;
     }
     
@@ -55,9 +55,9 @@ int main(int argc, char *argv[])
         }
         return -1;
     }
-    print_header(rank, full);
+    print_header(HEADER, rank, full);
 
-    buffer = shmalloc(max_msg_size * sizeof(char));
+    buffer = (char *)shmalloc(max_msg_size * sizeof(char));
     if(NULL == buffer) {
         fprintf(stderr, "malloc failed.\n");
         exit(1);

@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU MPI Multi Latency Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -9,65 +9,79 @@
  * copyright file COPYRIGHT in the top level OMB directory.
  */
 
-#include <mpi.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <osu_pt2pt.h>
 
-#define MAX_ALIGNMENT (16384)
 #define MAX_MSG_SIZE (1<<22)
 #define MAX_STEPS    (22+1)
-#define MAXBUFSIZE (MAX_MSG_SIZE + MAX_ALIGNMENT)
-#define LARGE_MSG_SIZE (8192)
-#define LOOP_SMALL  10000
-#define SKIP_SMALL  100
-#define LOOP_LARGE  1000
-#define SKIP_LARGE  10
 
-char s_buf1[MAXBUFSIZE];
-char r_buf1[MAXBUFSIZE];
 char *s_buf, *r_buf;
-
 
 static void multi_latency(int rank, int pairs);
 
-#ifdef PACKAGE_VERSION
-#   define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
-#else
-#   define HEADER "# " BENCHMARK "\n"
-#endif
-
-#ifndef FIELD_WIDTH
-#   define FIELD_WIDTH 20
-#endif
-
-#ifndef FLOAT_PRECISION
-#   define FLOAT_PRECISION 2
-#endif
-
 int main(int argc, char* argv[])
 {
-    int align_size, rank, nprocs; 
+    unsigned long align_size = sysconf(_SC_PAGESIZE);
+    int rank, nprocs; 
     int pairs;
 
+    int po_ret = process_options(argc, argv, LAT);
+
+    if (po_okay == po_ret && none != options.accel) {
+        if (init_accel()) {
+            fprintf(stderr, "Error initializing device\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    set_header(HEADER);
     MPI_Init(&argc, &argv);
-
-    align_size = getpagesize();
-    s_buf =
-        (char *) (((unsigned long) s_buf1 + (align_size - 1)) /
-                  align_size * align_size);
-    r_buf =
-        (char *) (((unsigned long) r_buf1 + (align_size - 1)) /
-                  align_size * align_size);
-
-    memset(s_buf, 0, MAX_MSG_SIZE);
-    memset(r_buf, 0, MAX_MSG_SIZE);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
     pairs = nprocs/2;
+
+    if (0 == rank) {
+        switch (po_ret) {
+            case po_cuda_not_avail:
+                fprintf(stderr, "CUDA support not enabled.  Please recompile "
+                        "benchmark with CUDA support.\n");
+                break;
+            case po_openacc_not_avail:
+                fprintf(stderr, "OPENACC support not enabled.  Please "
+                        "recompile benchmark with OPENACC support.\n");
+                break;
+            case po_bad_usage:
+            case po_help_message:
+                usage("osu_multi_lat");
+                break;
+        }
+    }
+
+    switch (po_ret) {
+        case po_cuda_not_avail:
+        case po_openacc_not_avail:
+        case po_bad_usage:
+            MPI_Finalize();
+            exit(EXIT_FAILURE);
+        case po_help_message:
+            MPI_Finalize();
+            exit(EXIT_SUCCESS);
+        case po_okay:
+            break;
+    }
+
+    if (posix_memalign((void**)&s_buf, align_size, MAX_MSG_SIZE)) {
+        fprintf(stderr, "Error allocating host memory\n");
+        return EXIT_FAILURE;
+    }
+
+    if (posix_memalign((void**)&r_buf, align_size, MAX_MSG_SIZE)) {
+        fprintf(stderr, "Error allocating host memory\n");
+        return EXIT_FAILURE;
+    }
+
+    memset(s_buf, 0, MAX_MSG_SIZE);
+    memset(r_buf, 0, MAX_MSG_SIZE);
 
     if(rank == 0) {
         fprintf(stdout, HEADER);
@@ -83,13 +97,16 @@ int main(int argc, char* argv[])
 
     MPI_Finalize();
 
+    free(r_buf);
+    free(s_buf);
+
     return EXIT_SUCCESS;
 }
 
 static void multi_latency(int rank, int pairs)
 {
     int size, partner;
-    int loop, i, skip;
+    int i;
     double t_start = 0.0, t_end = 0.0,
            latency = 0.0, total_lat = 0.0,
            avg_lat = 0.0;
@@ -101,20 +118,20 @@ static void multi_latency(int rank, int pairs)
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        if(size > LARGE_MSG_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+        if(size > LARGE_MESSAGE_SIZE) {
+            options.loop = options.loop_large;
+            options.skip = options.skip_large;
         } else {
-            loop = LOOP_SMALL;
-            skip = SKIP_SMALL;
+            options.loop = options.loop; 
+            options.skip = options.skip;
         }
 
         if (rank < pairs) {
             partner = rank + pairs;
 
-            for (i = 0; i < loop + skip; i++) {
+            for (i = 0; i < options.loop + options.skip; i++) {
 
-                if (i == skip) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime();
                     MPI_Barrier(MPI_COMM_WORLD);
                 }
@@ -129,9 +146,9 @@ static void multi_latency(int rank, int pairs)
         } else {
             partner = rank - pairs;
 
-            for (i = 0; i < loop + skip; i++) {
+            for (i = 0; i < options.loop + options.skip; i++) {
 
-                if (i == skip) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime();
                     MPI_Barrier(MPI_COMM_WORLD);
                 }
@@ -144,7 +161,7 @@ static void multi_latency(int rank, int pairs)
             t_end = MPI_Wtime();
         }
 
-        latency = (t_end - t_start) * 1.0e6 / (2.0 * loop);
+        latency = (t_end - t_start) * 1.0e6 / (2.0 * options.loop);
 
         MPI_Reduce(&latency, &total_lat, 1, MPI_DOUBLE, MPI_SUM, 0, 
                    MPI_COMM_WORLD);

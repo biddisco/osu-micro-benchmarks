@@ -16,4 +16,8 @@ if UPC
     SUBDIRS += upc
 endif
 
+if UPCXX
+    SUBDIRS += upcxx
+endif
+
 EXTRA_DIST = README CHANGES COPYRIGHT

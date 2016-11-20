@@ -1,21 +1,19 @@
 #define BENCHMARK "OSU MPI%s All-to-All Personalized Exchange Latency Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
- * (NBCL), The Ohio State University. 
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
+ * (NBCL), The Ohio State University.
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
  *
  * For detailed copyright and licensing information, please refer to the
  * copyright file COPYRIGHT in the top level OMB directory.
  */
-
 #include "osu_coll.h"
 
 int
 main (int argc, char *argv[])
 {
     int i, numprocs, rank, size;
-    int skip;
     double latency = 0.0, t_start = 0.0, t_stop = 0.0;
     double timer=0.0;
     double avg_time = 0.0, max_time = 0.0, min_time = 0.0;
@@ -87,24 +85,22 @@ main (int argc, char *argv[])
     set_buffer(recvbuf, options.accel, 0, bufsize);
     print_preamble(rank);
 
-    for (size=1; size <= options.max_message_size; size *= 2) {
+    for(size=options.min_message_size; size <= options.max_message_size; size *= 2) {
         if (size > LARGE_MESSAGE_SIZE) {
-            skip = SKIP_LARGE;
+            options.skip = options.skip_large;
             options.iterations = options.iterations_large;
-        } else {
-            skip = SKIP;
         }
 
         MPI_Barrier(MPI_COMM_WORLD);
         timer=0.0;
 
-        for (i=0; i < options.iterations + skip ; i++) {
+        for (i=0; i < options.iterations + options.skip ; i++) {
             t_start = MPI_Wtime();
             MPI_Alltoall(sendbuf, size, MPI_CHAR, recvbuf, size, MPI_CHAR,
                     MPI_COMM_WORLD);
             t_stop = MPI_Wtime();
 
-            if (i >= skip) {
+            if (i >= options.skip) {
                 timer+=t_stop-t_start;
             }
             MPI_Barrier(MPI_COMM_WORLD);

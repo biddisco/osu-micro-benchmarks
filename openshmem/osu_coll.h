@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University. 
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -26,10 +26,10 @@
 #define SKIP 200
 #define SKIP_LARGE 10
 #define LARGE_MESSAGE_SIZE 8192
-#define MAX_ALIGNMENT 16384
 #define MAX_MEM_LIMIT (512*1024*1024)
 #define MAX_MEM_LOWER_LIMIT (1*1024*1024)
 
+/*
 #ifdef _ENABLE_OPENACC_
 #   define OPENACC_ENABLED 1
 #else
@@ -45,6 +45,7 @@
 #ifndef BENCHMARK
 #   define BENCHMARK "OpenSHMEM%s BENCHMARK NAME UNSET"
 #endif
+*/
 
 #ifdef PACKAGE_VERSION
 #   define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
@@ -64,11 +65,11 @@ static int iterations = 1000;
 static int iterations_large = 100;
 static int print_size = 0;
 static uint64_t max_mem_limit = MAX_MEM_LIMIT; 
-static int process_args (int argc, char *argv[], int rank, int * size, int * full) __attribute__((unused));
-static void print_header (int rank, int full) __attribute__((unused));
-static void print_data (int rank, int full, int size, double avg_time, double
+static int process_args (int argc, char *argv[], int rank, int * size, int * full, const char *header) __attribute__((unused));
+void print_header (const char *header, int rank, int full) __attribute__((unused));
+void print_data (int rank, int full, int size, double avg_time, double
         min_time, double max_time, int iterations) __attribute__((unused));
-
+	
 static void print_usage(int rank, const char * prog, int has_size)
 {
     if (rank == 0) {
@@ -100,15 +101,15 @@ static void print_usage(int rank, const char * prog, int has_size)
     }
 }
 
-static void print_version()
+static void print_version(const char *header)
 {
-        fprintf(stdout, HEADER, "");
+        fprintf(stdout, header, "");
         fflush(stdout);
 }
 
-static int process_args (int argc, char *argv[], int rank, int * size, int * full)
+static int process_args (int argc, char *argv[], int rank, int * size, int * full, const char *header)
 {
-    char c;
+    int c;
 
     if (size) {
         print_size = 1;
@@ -122,7 +123,7 @@ static int process_args (int argc, char *argv[], int rank, int * size, int * ful
 
             case 'v':
                 if (rank == 0) {
-                    print_version();
+                    print_version(header);
                 }
 
                 return 1;
@@ -175,62 +176,6 @@ static int process_args (int argc, char *argv[], int rank, int * size, int * ful
     }
 
     return 0;
-}
-
-static void print_header (int rank, int full)
-{
-    if(rank == 0) {
-        fprintf(stdout, HEADER, "");
-
-        if (print_size) {
-            fprintf(stdout, "%-*s", 10, "# Size");
-            fprintf(stdout, "%*s", FIELD_WIDTH, "Avg Latency(us)");
-        }
-
-        else {
-            fprintf(stdout, "# Avg Latency(us)");
-        }
-
-        if (full) {
-            fprintf(stdout, "%*s", FIELD_WIDTH, "Min Latency(us)");
-            fprintf(stdout, "%*s", FIELD_WIDTH, "Max Latency(us)");
-            fprintf(stdout, "%*s\n", 12, "Iterations");
-        }
-
-        else {
-            fprintf(stdout, "\n");
-        }
-
-        fflush(stdout);
-    }
-}
-
-static void print_data (int rank, int full, int size, double avg_time, double
-        min_time, double max_time, int iterations)
-{
-    if(rank == 0) {
-        if (print_size) {
-            fprintf(stdout, "%-*d", 10, size);
-            fprintf(stdout, "%*.*f", FIELD_WIDTH, FLOAT_PRECISION, avg_time);
-        }
-
-        else {
-            fprintf(stdout, "%*.*f", 17, FLOAT_PRECISION, avg_time);
-        }
-
-        if (full) {
-            fprintf(stdout, "%*.*f%*.*f%*d\n", 
-                    FIELD_WIDTH, FLOAT_PRECISION, min_time,
-                    FIELD_WIDTH, FLOAT_PRECISION, max_time,
-                    12, iterations);
-        }
-
-        else {
-            fprintf(stdout, "\n");
-        }
-
-        fflush(stdout);
-    }
 }
 
 #endif

@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU OpenSHMEM Barrier Latency Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University. 
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     rank = _my_pe();
     numprocs = _num_pes();
 
-    if (process_args(argc, argv, rank, NULL, &full)) {
+    if (process_args(argc, argv, rank, NULL, &full, HEADER)) {
         return EXIT_SUCCESS;
     }
 
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    print_header(rank, full);
+    print_header(HEADER, rank, full);
 
     skip = SKIP_LARGE;
     iterations = iterations_large;

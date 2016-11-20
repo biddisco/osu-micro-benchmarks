@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU OpenSHMEM Put Message Rate Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University. 
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -111,7 +111,7 @@ check_usage (int me, int npes, int argc, char * argv [])
 }
 
 void
-print_header (int myid)
+print_header_local (int myid)
 {
     if(myid == 0) {
         fprintf(stdout, HEADER);
@@ -230,7 +230,7 @@ main (int argc, char *argv[])
      */
     v = init_openshmem();
     check_usage(v.me, v.npes, argc, argv);
-    print_header(v.me);
+    print_header_local(v.me);
 
     /*
      * Allocate Memory

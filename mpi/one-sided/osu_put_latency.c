@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU MPI_Put%s Latency Test"
 /*
- * Copyright (C) 2003-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2003-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.            
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -24,8 +24,6 @@
 #   define HEADER "# " BENCHMARK "\n"
 #endif
 
-int     skip = 1000;
-int     loop = 10000;
 double  t_start = 0.0, t_end = 0.0;
 char    sbuf_original[MYBUFSIZE];
 char    rbuf_original[MYBUFSIZE];
@@ -79,7 +77,7 @@ int main (int argc, char *argv[])
                 break;
             case po_bad_usage:
             case po_help_message:
-                usage(all_sync);
+                usage(all_sync, "osu_put_latency");
                 break;
         }
     }
@@ -181,7 +179,7 @@ void print_latency(int rank, int size)
 {
     if (rank == 0) {
         fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop);
+                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / options.loop);
         fflush(stdout);
     }
 }
@@ -202,14 +200,14 @@ void run_put_with_flush_local (int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Put(sbuf, size, MPI_CHAR, 1, disp, size, MPI_CHAR, win));
@@ -242,14 +240,14 @@ void run_put_with_flush (int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Put(sbuf, size, MPI_CHAR, 1, disp, size, MPI_CHAR, win));
@@ -282,13 +280,13 @@ void run_put_with_lock_all (int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_lock_all(0, win));
@@ -324,13 +322,13 @@ void run_put_with_lock(int rank, WINDOW type)
 #endif
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
@@ -365,15 +363,15 @@ void run_put_with_fence(int rank, WINDOW type)
 #endif
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_fence(0, win));
@@ -383,7 +381,7 @@ void run_put_with_fence(int rank, WINDOW type)
             }
             t_end = MPI_Wtime ();
         } else {
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i < options.skip + options.loop; i++) {
                 MPI_CHECK(MPI_Win_fence(0, win));
                 MPI_CHECK(MPI_Win_fence(0, win));
                 MPI_CHECK(MPI_Put(sbuf, size, MPI_CHAR, 0, disp, size, MPI_CHAR, win));
@@ -395,7 +393,7 @@ void run_put_with_fence(int rank, WINDOW type)
 
         if (rank == 0) {
             fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop / 2);
+                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / options.loop / 2);
             fflush(stdout);
         }
 
@@ -423,8 +421,8 @@ void run_put_with_pscw(int rank, WINDOW type)
 #endif
 
         if (size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         if (rank == 0) {
@@ -433,9 +431,9 @@ void run_put_with_pscw(int rank, WINDOW type)
             MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
             MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i < options.skip + options.loop; i++) {
                 MPI_CHECK(MPI_Win_start (group, 0, win));
-                if (i == skip) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Put(sbuf, size, MPI_CHAR, 1, disp, size, MPI_CHAR, win));
@@ -452,7 +450,7 @@ void run_put_with_pscw(int rank, WINDOW type)
             MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
             MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i < options.skip + options.loop; i++) {
                 MPI_CHECK(MPI_Win_post(group, 0, win));
                 MPI_CHECK(MPI_Win_wait(win));
                 MPI_CHECK(MPI_Win_start(group, 0, win));
@@ -465,7 +463,7 @@ void run_put_with_pscw(int rank, WINDOW type)
 
         if (rank == 0) {
             fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop / 2);
+                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / options.loop / 2);
             fflush(stdout);
         }
 

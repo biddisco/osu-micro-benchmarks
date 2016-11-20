@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2003-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -110,15 +110,21 @@ enum options_type {
    active_sync
 };
 
-struct {
+struct options_t {
     char rank0;
     char rank1;
     enum accel_type accel;
-} options;
+    int loop;
+    int loop_large;
+    int skip;
+    int skip_large;
+};
+
+extern struct options_t options;
 
 /*variables*/
-extern char *win_info[20];
-extern char *sync_info[20];
+extern char const *win_info[20];
+extern char const *sync_info[20];
 
 #ifdef _ENABLE_CUDA_
 extern CUcontext cuContext;
@@ -128,7 +134,7 @@ extern MPI_Aint disp_remote;
 extern MPI_Aint disp_local;
 
 /*function declarations*/
-void usage ();
+void usage (int, char const *);
 int  process_options (int, char **, WINDOW*, SYNC*, int);
 void allocate_memory(int, char *, char *, char **, char **,
             char **win_base, int, WINDOW, MPI_Win *);

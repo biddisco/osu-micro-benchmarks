@@ -1,6 +1,6 @@
-#define BENCHMARK "OSU MPI_Fetch_and_op latency Test"
+#define BENCHMARK "OSU MPI_Fetch_and_op%s latency Test"
 /*
- * Copyright (C) 2003-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2003-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.            
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -21,8 +21,6 @@
 #   define HEADER "# " BENCHMARK "\n"
 #endif
 
-int     skip = 10;
-int     loop = 500;
 double  t_start = 0.0, t_end = 0.0;
 char    sbuf_original[MYBUFSIZE];
 char    rbuf_original[MYBUFSIZE];
@@ -43,7 +41,6 @@ int main (int argc, char *argv[])
     SYNC        sync_type=FLUSH; 
     int         rank,nprocs;
    
-    int         page_size;
     int         po_ret = po_okay;
     WINDOW      win_type=WIN_ALLOCATE;
 
@@ -72,7 +69,7 @@ int main (int argc, char *argv[])
                 break;
             case po_bad_usage:
             case po_help_message:
-                usage(all_sync);
+                usage(all_sync, "osu_fop_latency");
                 break;
         }
 
@@ -172,7 +169,7 @@ void print_latency(int rank, int size)
 {
     if (rank == 0) {
         fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop);
+                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / options.loop);
         fflush(stdout);
     }
 }
@@ -197,8 +194,8 @@ void run_fop_with_flush_local (int rank, WINDOW type)
         }
 
         MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
-        for (i = 0; i < skip + loop; i++) {
-            if (i == skip) {
+        for (i = 0; i < options.skip + options.loop; i++) {
+            if (i == options.skip) {
                 t_start = MPI_Wtime ();
             }
             MPI_CHECK(MPI_Fetch_and_op(sbuf, tbuf, MPI_LONG_LONG, 1, disp, MPI_SUM, win));
@@ -233,8 +230,8 @@ void run_fop_with_flush (int rank, WINDOW type)
             disp = disp_remote;
         }
         MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
-        for (i = 0; i < skip + loop; i++) {
-            if (i == skip) {
+        for (i = 0; i < options.skip + options.loop; i++) {
+            if (i == options.skip) {
                 t_start = MPI_Wtime ();
             }
             MPI_CHECK(MPI_Fetch_and_op(sbuf, tbuf, MPI_LONG_LONG, 1, disp, MPI_SUM, win));
@@ -267,8 +264,8 @@ void run_fop_with_lock_all (int rank, WINDOW type)
             disp = disp_remote;
         }
 
-        for (i = 0; i < skip + loop; i++) {
-            if (i == skip) {
+        for (i = 0; i < options.skip + options.loop; i++) {
+            if (i == options.skip) {
                 t_start = MPI_Wtime ();
             }
             MPI_CHECK(MPI_Win_lock_all(0, win));
@@ -301,8 +298,8 @@ void run_fop_with_lock(int rank, WINDOW type)
             disp = disp_remote;
         }
 
-        for (i = 0; i < skip + loop; i++) {
-            if (i == skip) {
+        for (i = 0; i < options.skip + options.loop; i++) {
+            if (i == options.skip) {
                 t_start = MPI_Wtime ();
             }
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 1, 0, win));
@@ -337,8 +334,8 @@ void run_fop_with_fence(int rank, WINDOW type)
 
     if(rank == 0) {
 
-        for (i = 0; i < skip + loop; i++) {
-            if (i == skip) {
+        for (i = 0; i < options.skip + options.loop; i++) {
+            if (i == options.skip) {
                 t_start = MPI_Wtime ();
             }
             MPI_CHECK(MPI_Win_fence(0, win));
@@ -348,7 +345,7 @@ void run_fop_with_fence(int rank, WINDOW type)
         }
         t_end = MPI_Wtime ();
     } else {
-        for (i = 0; i < skip + loop; i++) {
+        for (i = 0; i < options.skip + options.loop; i++) {
             MPI_CHECK(MPI_Win_fence(0, win));
             MPI_CHECK(MPI_Win_fence(0, win));
             MPI_CHECK(MPI_Fetch_and_op(sbuf, tbuf, MPI_LONG_LONG, 0, disp, MPI_SUM, win));
@@ -360,7 +357,7 @@ void run_fop_with_fence(int rank, WINDOW type)
 
     if (rank == 0) {
         fprintf(stdout, "%-*d%*.*f\n", 10, 8, FIELD_WIDTH,
-                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop / 2);
+                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / options.loop / 2);
         fflush(stdout);
     }
 
@@ -391,10 +388,10 @@ void run_fop_with_pscw(int rank, WINDOW type)
         MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-        for (i = 0; i < skip + loop; i++) {
+        for (i = 0; i < options.skip + options.loop; i++) {
             MPI_CHECK(MPI_Win_start (group, 0, win));
 
-            if (i == skip) {
+            if (i == options.skip) {
                 t_start = MPI_Wtime ();
             }
 
@@ -412,7 +409,7 @@ void run_fop_with_pscw(int rank, WINDOW type)
         MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-        for (i = 0; i < skip + loop; i++) {
+        for (i = 0; i < options.skip + options.loop; i++) {
             MPI_CHECK(MPI_Win_post(group, 0, win));
             MPI_CHECK(MPI_Win_wait(win));
             MPI_CHECK(MPI_Win_start(group, 0, win));
@@ -425,7 +422,7 @@ void run_fop_with_pscw(int rank, WINDOW type)
 
     if (rank == 0) {
         fprintf(stdout, "%-*d%*.*f\n", 10, 8, FIELD_WIDTH,
-                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop / 2);
+                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / options.loop / 2);
         fflush(stdout);
     }
 

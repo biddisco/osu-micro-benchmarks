@@ -1,3 +1,113 @@
+OSU Micro Benchmarks v5.3.2 (09/08/16)
+* New Features & Enhancements
+    - Allow specifying very large message sizes (>2GB) for collective benchmarks
+
+* Bug Fixes
+    - Fix compilation errors due to missing type casting
+
+OSU Micro Benchmarks v5.3.1 (08/08/16)
+* New Features & Enhancements
+    - Add option to control whether CUDA kernels are built
+    - Add runtime option to specify number of threads for osu_latency_mt
+
+* Bug Fixes
+    - Check if -lrt or -lpthread is needed
+    - Fix compilation warnings
+    - Fix non-blocking collective memory leak
+    - Correct documentation for osu_multi_lat
+
+OSU Micro Benchmarks v5.3 (03/25/16)
+* New Features & Enhancements
+    - Introduce new UPC++ Benchmarks
+        * osu_upcxx_allgather
+        * osu_upcxx_alltoall
+        * osu_upcxx_async_copy_get
+        * osu_upcxx_async_copy_put
+        * osu_upcxx_bcast
+        * osu_upcxx_gather
+        * osu_upcxx_reduce
+        * osu_upcxx_scatter
+
+* Bug Fixes
+    - Determine page size at runtime in OpenSHMEM benchmarks (fixes issue seen
+      on OpenPower machines)
+
+OSU Micro Benchmarks v5.2 (02/05/16)
+* New Features & Enhancements
+    - Support for CUDA-Aware Managed memory
+        * osu_bibw
+        * osu_bw
+        * osu_latency
+        * osu_allgather
+        * osu_allgatherv
+        * osu_allreduce
+        * osu_alltoall
+        * osu_alltoallv
+        * osu_bcast
+        * osu_gather
+        * osu_gatherv
+        * osu_reduce
+        * osu_reduce_scatter
+        * osu_scatter
+        * osu_scatterv
+    - Add ability to specify minimum message size in addition to maximum
+      message size for all collective benchmarks
+
+OSU Micro Benchmarks v5.1 (11/10/15)
+* New Features & Enhancements
+    - Introduce non-blocking collective v-variants as well as ialltoallw
+        * osu_iallgatherv
+        * osu_ialltoallv
+        * osu_igatherv
+        * osu_iscatterv
+        * osu_ialltoallw
+    - Add support for benchmarking GPU-Aware non-blocking collectives.  Overlap
+      can be computed using either CPU or GPU kernels
+        * osu_iallgather
+        * osu_iallgatherv
+        * osu_ialltoall
+        * osu_ialltoallv
+        * osu_ialltoallw
+        * osu_ibcast
+        * osu_igather
+        * osu_igatherv
+        * osu_iscatter
+        * osu_iscatterv
+    - Allow users the ability to specify zero warmup iterations
+
+* Bug Fixes
+    - fix openacc pragma
+
+OSU Micro Benchmarks v5.0 (08/17/15)
+* New Features & Enhancements
+    - Support for a set of non-blocking collectives. The benchmarks can display
+      both the amount of time spent in the collectives and the amount of
+      overlap achievable
+        * osu_iallgather
+        * osu_ialltoall
+        * osu_ibarrier
+        * osu_ibcast
+        * osu_igather
+        * osu_iscatter
+    - Add startup benchmarks to facilitate the ability to measure the amount of
+      time it takes for an MPI library to complete MPI_Init
+        * osu_init
+        * osu_hello
+    - Allocate and align data dynamically
+        - Thanks to Devendar Bureddy from Mellanox for the suggestion
+    - Add options for number of warmup iterations [-x] and number of iterations
+      used per message size [-i] to MPI benchmarks
+        - Thanks to Devendar Bureddy from Mellanox for the suggestion
+
+* Bug Fixes
+    - Do not truncate user specified max memory limits
+        - Thanks to Devendar Bureddy from Mellanox for the report and patch
+
+OSU Micro Benchmarks v4.4.1 (10/30/14)
+* Bug Fixes
+    - adding missing MPI3 guard for WIN_ALLOCATE
+    - capture getopt return value in an int instead of char
+
 OSU Micro Benchmarks v4.4 (8/23/14)
 * New Features & Enhancements
     - Support for MPI-3 RMA (one-sided) and atomic operations using GPU buffers

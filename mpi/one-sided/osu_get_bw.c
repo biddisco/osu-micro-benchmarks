@@ -1,6 +1,6 @@
-#define BENCHMARK "OSU MPI_Get Bandwidth Test"
+#define BENCHMARK "OSU MPI_Get%s Bandwidth Test"
 /*
- * Copyright (C) 2003-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2003-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.            
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -27,8 +27,6 @@
 #   define HEADER "# " BENCHMARK "\n"
 #endif
 
-int     skip = 20;
-int     loop = 100;
 double  t_start = 0.0, t_end = 0.0;
 char    sbuf_original[MYBUFSIZE];
 char    rbuf_original[MYBUFSIZE];
@@ -48,7 +46,6 @@ void run_get_with_pscw (int, WINDOW);
 int main (int argc, char *argv[])
 {
     int         rank,nprocs;
-    int         page_size;
     int         po_ret = po_okay;
 #if MPI_VERSION >= 3
     WINDOW      win_type=WIN_ALLOCATE;
@@ -83,7 +80,7 @@ int main (int argc, char *argv[])
                 break;
             case po_bad_usage:
             case po_help_message:
-                usage(all_sync);
+                usage(all_sync, "osu_get_bw");
                 break;
         }
     }
@@ -184,7 +181,7 @@ void print_header (int rank, WINDOW win, SYNC sync)
 void print_bw(int rank, int size, double t)
 {
     if (rank == 0) {
-        double tmp = size / 1e6 * loop * WINDOW_SIZE_LARGE;
+        double tmp = size / 1e6 * options.loop * WINDOW_SIZE_LARGE;
 
         fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
                 FLOAT_PRECISION, tmp / t);
@@ -196,7 +193,7 @@ void print_bw(int rank, int size, double t)
 /*Run GET with flush local */
 void run_get_with_flush_local (int rank, WINDOW type)
 {
-    double t;
+    double t = 0.0;
     int size, i, j;
     MPI_Aint disp = 0;
     MPI_Win     win;
@@ -210,13 +207,13 @@ void run_get_with_flush_local (int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
         if (rank == 0) {
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 for(j = 0; j < window_size; j++) {
@@ -241,7 +238,7 @@ void run_get_with_flush_local (int rank, WINDOW type)
 /*Run GET with flush */
 void run_get_with_flush (int rank, WINDOW type)
 {
-    double t;
+    double t= 0.0;
     int size, i, j;
     MPI_Aint disp = 0;
     MPI_Win     win;
@@ -255,14 +252,14 @@ void run_get_with_flush (int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         if (rank == 0) {
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 for(j = 0; j < window_size; j++) {
@@ -287,7 +284,7 @@ void run_get_with_flush (int rank, WINDOW type)
 /*Run GET with Lock_all/unlock_all */
 void run_get_with_lock_all (int rank, WINDOW type)
 {
-    double t;
+    double t = 0.0;
     int size, i, j;
     MPI_Aint disp = 0;
     MPI_Win     win;
@@ -301,12 +298,12 @@ void run_get_with_lock_all (int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
         if (rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_lock_all(0, win));
@@ -332,7 +329,7 @@ void run_get_with_lock_all (int rank, WINDOW type)
 /*Run GET with Lock/unlock */
 void run_get_with_lock(int rank, WINDOW type)
 {
-    double t;
+    double t = 0.0;
     int size, i, j;
     MPI_Aint disp = 0;
     MPI_Win     win;
@@ -348,12 +345,12 @@ void run_get_with_lock(int rank, WINDOW type)
 #endif
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
         if (rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_lock(MPI_LOCK_SHARED, 1, 0, win));
@@ -378,7 +375,7 @@ void run_get_with_lock(int rank, WINDOW type)
 /*Run GET with Fence */
 void run_get_with_fence(int rank, WINDOW type)
 {
-    double t; 
+    double t = 0.0; 
     int size, i, j;
     MPI_Aint disp = 0;
     MPI_Win     win;
@@ -394,15 +391,15 @@ void run_get_with_fence(int rank, WINDOW type)
 #endif
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i < options.skip + options.loop; i++) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_fence(0, win));
@@ -415,7 +412,7 @@ void run_get_with_fence(int rank, WINDOW type)
             t_end = MPI_Wtime ();
             t = t_end - t_start;
         } else {
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i < options.skip + options.loop; i++) {
                 MPI_CHECK(MPI_Win_fence(0, win));
                 MPI_CHECK(MPI_Win_fence(0, win));
             }
@@ -432,7 +429,7 @@ void run_get_with_fence(int rank, WINDOW type)
 /*Run GET with Post/Start/Complete/Wait */
 void run_get_with_pscw(int rank, WINDOW type)
 {
-    double t; 
+    double t = 0.0; 
     int destrank, size, i, j;
     MPI_Aint disp = 0;
     MPI_Win     win;
@@ -450,8 +447,8 @@ void run_get_with_pscw(int rank, WINDOW type)
 #endif
 
         if (size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+            options.loop = LOOP_LARGE;
+            options.skip = SKIP_LARGE;
         }
 
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
@@ -460,9 +457,9 @@ void run_get_with_pscw(int rank, WINDOW type)
 
             destrank = 1;
             MPI_CHECK(MPI_Group_incl (comm_group, 1, &destrank, &group));
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i < options.skip + options.loop; i++) {
                 MPI_CHECK(MPI_Win_start(group, 0, win));
-                if (i == skip) {
+                if (i == options.skip) {
                     t_start = MPI_Wtime ();
                 }
                 for(j = 0; j < window_size; j++) {
@@ -477,7 +474,7 @@ void run_get_with_pscw(int rank, WINDOW type)
 
             destrank = 0;
             MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i < options.skip + options.loop; i++) {
                 MPI_CHECK(MPI_Win_post(group, 0, win));
                 MPI_CHECK(MPI_Win_wait(win));
             }

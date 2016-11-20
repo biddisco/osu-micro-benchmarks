@@ -1,49 +1,18 @@
 #define BENCHMARK "OSU MPI%s Reduce_scatter Latency Test"
 /*
- * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2002-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
+ *
+ * For detailed copyright and licensing information, please refer to the
+ * copyright file COPYRIGHT in the top level OMB directory.
  */
-
-/*
-This program is available under BSD licensing.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-(1) Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-(2) Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-(3) Neither the name of The Ohio State University nor the names of
-their contributors may be used to endorse or promote products derived
-from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
-
 #include "osu_coll.h"
 
 int main(int argc, char *argv[])
 {
-    int i, numprocs, rank, size, align_size;
-    int skip;
+    int i, numprocs, rank, size;
     double latency = 0.0, t_start = 0.0, t_stop = 0.0;
     double timer=0.0;
     double avg_time = 0.0, max_time = 0.0, min_time = 0.0;
@@ -98,6 +67,11 @@ int main(int argc, char *argv[])
         options.max_message_size = options.max_mem_limit;
     }
 
+    options.min_message_size /= sizeof(float);
+    if (options.min_message_size < DEFAULT_MIN_MESSAGE_SIZE) {
+        options.min_message_size = DEFAULT_MIN_MESSAGE_SIZE;
+    }
+
     if (allocate_buffer((void**)&recvcounts, numprocs*sizeof(int), none)) {
         fprintf(stderr, "Could Not Allocate Memory [rank %d]\n", rank);
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
@@ -120,13 +94,11 @@ int main(int argc, char *argv[])
 
     print_preamble(rank);
 
-    for(size=1; size*sizeof(float)<= options.max_message_size; size *= 2) {
+    for(size=options.min_message_size; size*sizeof(float) <= options.max_message_size; size *= 2) {
 
         if(size > LARGE_MESSAGE_SIZE) {
-            skip = SKIP_LARGE;
+            options.skip = options.skip_large;
             options.iterations = options.iterations_large;
-        } else {
-            skip = SKIP;
         }
 
         int portion=0, remainder=0;
@@ -135,7 +107,7 @@ int main(int argc, char *argv[])
 
         for (i=0; i<numprocs; i++){
             recvcounts[i]=0;
-            if(size<numprocs){ 
+            if(size<numprocs){
                 if(i<size)
                     recvcounts[i]=1;
             }
@@ -147,18 +119,18 @@ int main(int argc, char *argv[])
             }
         }
         MPI_Barrier(MPI_COMM_WORLD);
-        
+
         timer=0.0;
-        for(i=0; i < options.iterations + skip ; i++) {
+        for(i=0; i < options.iterations + options.skip ; i++) {
             t_start = MPI_Wtime();
 
             MPI_Reduce_scatter( sendbuf, recvbuf, recvcounts, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD );
             t_stop=MPI_Wtime();
-            if(i>=skip){
+            if(i>=options.skip){
 
             timer+=t_stop-t_start;
-            } 
-            MPI_Barrier(MPI_COMM_WORLD);  
+            }
+            MPI_Barrier(MPI_COMM_WORLD);
         }
         latency = (double)(timer * 1e6) / options.iterations;
 
@@ -170,7 +142,7 @@ int main(int argc, char *argv[])
                 MPI_COMM_WORLD);
         avg_time = avg_time/numprocs;
 
-        print_stats(rank, size, avg_time, min_time, max_time);
+        print_stats(rank, size * sizeof(float), avg_time, min_time, max_time);
         MPI_Barrier(MPI_COMM_WORLD);
     }
 

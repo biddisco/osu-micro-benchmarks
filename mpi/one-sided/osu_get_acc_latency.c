@@ -1,6 +1,6 @@
 #define BENCHMARK "OSU MPI_Get_accumulate latency Test"
 /*
- * Copyright (C) 2003-2014 the Network-Based Computing Laboratory
+ * Copyright (C) 2003-2016 the Network-Based Computing Laboratory
  * (NBCL), The Ohio State University.            
  *
  * Contact: Dr. D. K. Panda (panda@cse.ohio-state.edu)
@@ -78,13 +78,13 @@ typedef enum {
 } SYNC;
 
 /*Header printout*/
-char *win_info[20] = {
+char const *win_info[20] = {
     "MPI_Win_create",
     "MPI_Win_create_dynamic",
     "MPI_Win_allocate",
 };
 
-char *sync_info[20] = {
+char const *sync_info[20] = {
     "MPI_Win_lock/unlock",
     "MPI_Win_flush",
     "MPI_Win_flush_local",
@@ -115,7 +115,6 @@ int main (int argc, char *argv[])
 {
     SYNC        sync_type=FLUSH; 
     int         rank,nprocs;
-   
     int         page_size;
     int         po_ret = po_okay;
     WINDOW      win_type=WIN_ALLOCATE;
@@ -196,7 +195,11 @@ void print_help_message (int rank)
 {
     if (rank) return;
 
-    printf("Usage: ./osu_get_acc_latency -w <win_option>  -s < sync_option> \n");
+    printf("Usage: ./osu_get_acc_latency -w <win_option>  -s < sync_option> [-x ITER] [-i ITER]\n");
+    printf("  -x ITER       number of warmup iterations to skip before timing"
+            "(default 100)\n");
+    printf("  -i ITER       number of iterations for timing (default 10000)\n");
+    printf("\n");
     printf("win_option:\n");
     printf("  create            use MPI_Win_create to create an MPI Window object\n");
     printf("  allocate          use MPI_Win_allocate to create an MPI Window object\n");
@@ -222,7 +225,7 @@ int process_options(int argc, char *argv[], WINDOW *win, SYNC *sync, int rank)
     extern int opterr;
     int c;
 
-    char const * optstring = "+w:s:h";
+    char const * optstring = "+w:s:h:x:i:";
 
     if (rank) {
         opterr = 0;
@@ -230,6 +233,12 @@ int process_options(int argc, char *argv[], WINDOW *win, SYNC *sync, int rank)
 
     while((c = getopt(argc, argv, optstring)) != -1) {
         switch (c) {
+            case 'x':
+                skip = atoi(optarg);  
+                break;
+            case 'i':
+                loop = atoi(optarg);
+                break;
             case 'w':
                 if (0 == strcasecmp(optarg, "create")) {
                     *win = WIN_CREATE;
@@ -320,7 +329,7 @@ void print_latency(int rank, int size)
 {
     if (rank == 0) {
         fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop);
+                FLOAT_PRECISION, (t_end - t_start) * 1.0e6 /  loop);
         fflush(stdout);
     }
 }
@@ -340,14 +349,14 @@ void run_get_acc_with_flush(int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+             loop = LOOP_LARGE;
+             skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 1, 0, win));
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i <  skip +  loop; i++) {
+                if (i ==  skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Get_accumulate(sbuf, size, MPI_CHAR, cbuf, size, MPI_CHAR, 1, disp, size,
@@ -381,14 +390,14 @@ void run_get_acc_with_flush_local(int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+             loop = LOOP_LARGE;
+             skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
             MPI_CHECK(MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 1, 0, win));
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i <  skip +  loop; i++) {
+                if (i ==  skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Get_accumulate(sbuf, size, MPI_CHAR, cbuf, size, MPI_CHAR, 1, disp, size,
@@ -422,13 +431,13 @@ void run_get_acc_with_lock_all(int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+             loop = LOOP_LARGE;
+             skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i <  skip +  loop; i++) {
+                if (i ==  skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_lock_all(0, win));
@@ -462,13 +471,13 @@ void run_get_acc_with_lock(int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+             loop = LOOP_LARGE;
+             skip = SKIP_LARGE;
         }
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i <  skip +  loop; i++) {
+                if (i ==  skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 1, 0, win));
@@ -502,15 +511,15 @@ void run_get_acc_with_fence(int rank, WINDOW type)
         }
 
         if(size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+             loop = LOOP_LARGE;
+             skip = SKIP_LARGE;
         }
 
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
         if(rank == 0) {
-            for (i = 0; i < skip + loop; i++) {
-                if (i == skip) {
+            for (i = 0; i <  skip +  loop; i++) {
+                if (i ==  skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Win_fence(0, win));
@@ -521,7 +530,7 @@ void run_get_acc_with_fence(int rank, WINDOW type)
             }
             t_end = MPI_Wtime ();
         } else {
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i <  skip +  loop; i++) {
                 MPI_CHECK(MPI_Win_fence(0, win));
                 MPI_CHECK(MPI_Win_fence(0, win));
                 MPI_CHECK(MPI_Get_accumulate(sbuf, size, MPI_CHAR, cbuf, size, MPI_CHAR, 0, disp, size,
@@ -534,7 +543,7 @@ void run_get_acc_with_fence(int rank, WINDOW type)
 
         if (rank == 0) {
             fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop / 2);
+                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 /  loop / 2);
             fflush(stdout);
         }
 
@@ -560,8 +569,8 @@ void run_get_acc_with_pscw(int rank, WINDOW type)
         }
 
         if (size > LARGE_MESSAGE_SIZE) {
-            loop = LOOP_LARGE;
-            skip = SKIP_LARGE;
+             loop = LOOP_LARGE;
+             skip = SKIP_LARGE;
         }
         
         MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
@@ -572,9 +581,9 @@ void run_get_acc_with_pscw(int rank, WINDOW type)
             MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
             MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i <  skip +  loop; i++) {
                 MPI_CHECK(MPI_Win_start (group, 0, win));
-                if (i == skip) {
+                if (i ==  skip) {
                     t_start = MPI_Wtime ();
                 }
                 MPI_CHECK(MPI_Get_accumulate(sbuf, size, MPI_CHAR, cbuf, size, MPI_CHAR, 1, disp, size,
@@ -592,7 +601,7 @@ void run_get_acc_with_pscw(int rank, WINDOW type)
             MPI_CHECK(MPI_Group_incl(comm_group, 1, &destrank, &group));
             MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
-            for (i = 0; i < skip + loop; i++) {
+            for (i = 0; i <  skip +  loop; i++) {
                 MPI_CHECK(MPI_Win_post(group, 0, win));
                 MPI_CHECK(MPI_Win_wait(win));
                 MPI_CHECK(MPI_Win_start(group, 0, win));
@@ -606,7 +615,7 @@ void run_get_acc_with_pscw(int rank, WINDOW type)
 
         if (rank == 0) {
             fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH,
-                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 / loop / 2);
+                    FLOAT_PRECISION, (t_end - t_start) * 1.0e6 /  loop / 2);
             fflush(stdout);
         }
 
