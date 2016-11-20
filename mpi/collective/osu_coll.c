@@ -237,12 +237,12 @@ print_help_message (int rank)
     }
 
     if (options.show_size) {
-        printf("  -m SIZE       maximum message size set to SIZE (default 1MB\n");
-        printf("  -M SIZE       per process maximum memory consumption set to SIZE (default\n");
-        printf("                %dMB)\n", MAX_MEM_LIMIT / (1 << 20)); 
+        printf("  -m SIZE       set maximum message size to SIZE bytes (default 1048576)\n");
+        printf("  -M SIZE       set per process maximum memory consumption to SIZE bytes\n");
+        printf("                (default %d)\n", MAX_MEM_LIMIT); 
     }
 
-    printf("  -i ITER       iterations per message size set to ITER (default 1000 for small\n");
+    printf("  -i ITER       set iterations per message size to ITER (default 1000 for small\n");
     printf("                messages, 100 for large messages)\n");
     printf("  -f            print full format listing (MIN/MAX latency and ITERATIONS\n");
     printf("                displayed in addition to AVERAGE latency)\n");

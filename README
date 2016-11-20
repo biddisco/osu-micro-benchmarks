@@ -21,11 +21,27 @@ to compile the corresponding benchmarks.  See
 http://mvapich.cse.ohio-state.edu/benchmarks/ to download the latest version of
 this package.
 
-This package also distributes UPC put and get benchmarks.  These are located in
-the upc subdirectory and can be compiled by the following:
+This package also distributes UPC put, get, and collective benchmarks.
+These are located in the upc subdirectory and can be compiled by the
+following:
 
         upcc upc/osu_upc_memput.c -o upc/osu_upc_memput
         upcc upc/osu_upc_memget.c -o upc/osu_upc_memget
+
+        upcc upc/osu_upc_all_barrier.c upc/osu_common.c     \
+            -o upc/osu_upc_all_barrier
+        upcc upc/osu_upc_all_broadcast.c upc/osu_common.c   \
+            -o upc/osu_upc_all_broadcast
+        upcc upc/osu_upc_all_exchange.c upc/osu_common.c    \
+            -o upc/osu_upc_all_exchange
+        upcc upc/osu_upc_all_gather_all.c upc/osu_common.c  \
+            -o upc/osu_upc_all_gather_all
+        upcc upc/osu_upc_all_gather.c upc/osu_common.c      \
+            -o upc/osu_upc_all_gather
+        upcc upc/osu_upc_all_reduce.c upc/osu_common.c      \
+            -o upc/osu_upc_all_reduce.c
+        upcc upc/osu_upc_all_scatter.c upc/osu_common.c     \
+            -o upc/osu_upc_all_scatter
 
 The MPI Multiple Bandwidth / Message Rate (osu_mbw_mr), OpenSHMEM Put Message
 Rate (osu_oshm_put_mr), and OpenSHMEM Atomics (osu_oshm_atomics) tests are
@@ -529,6 +545,33 @@ osu_upc_memget.c - Get Latency
     * above. The difference is that the shared string handling function is upc
     * memget. The average get operation latency per iteration is reported.
 
+Collective UPC Benchmarks
+-------------------------
+osu_upc_all_barrier     - UPC Barrier Latency Test
+osu_upc_all_broadcast   - UPC Broadcast Latency Test
+osu_upc_all_scatter     - UPC Scatter Latency Test
+osu_upc_all_gather      - UPC Gather Latency Test
+osu_upc_all_gather_all  - UPC GatherAll Latency Test
+osu_upc_all_reduce      - UPC Reduce Latency Test
+osu_upc_all_exchange    - UPC Exchange Latency Test
+
+Collective Latency Tests
+    * The latest OMB Version includes benchmarks for various UPC collective
+    * operations (upc_all_barrier, upc_all_broadcast, upc_all_scatter,
+    * upc_all_gather, upc_all_gather_all, osu_upc_all_reduce, and
+    * upc_all_exchange). These benchmarks work in the following manner. Suppose
+    * users run the osu_upc_all_broadcast benchmark with N processes, the
+    * benchmark measures the min, max and the average latency of the
+    * upc_all_broadcast collective operation across N processes, for various
+    * message lengths, over a large number of iterations. In the default
+    * version, these benchmarks report the average latency for each message
+    * length. Additionally, the benchmarks offer the following options: "-f"
+    * can be used to report additional statistics of the benchmark, such as min
+    * and max latencies and the number of iterations. "-m" option can be used
+    * to set the maximum message length to be used in a benchmark. In the
+    * default version, the benchmarks report the latencies for up to 1MB
+    * message lengths. "-i" can be used to set the number of iterations to run
+    * for each message length.
 
 CUDA and OpenACC Extensions to OMB
 ----------------------------------
@@ -550,6 +593,14 @@ MPI communication using buffers on NVIDIA GPU devices.
     osu_bibw          - Bidirectional Bandwidth Test
     osu_bw            - Bandwidth Test
     osu_latency       - Latency Test
+    osu_put_latency   - Latency Test for Put 
+    osu_get_latency   - Latency Test for Get
+    osu_put_bw        - Bandwidth Test for Put
+    osu_get_bw        - Bandwidth Test for Get
+    osu_put_bibw      - Bidirectional Bandwidth Test for Put
+    osu_acc_latency   - Latency Test for Accumulate
+    osu_cas_latency   - Latency Test for Compare and Swap
+    osu_fop_latency   - Latency Test for Fetch and Op
     osu_allgather     - MPI_Allgather Latency Test
     osu_allgatherv    - MPI_Allgatherv Latency Test
     osu_allreduce     - MPI_Allreduce Latency Test

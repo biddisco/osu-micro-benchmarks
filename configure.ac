@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.59])
-AC_INIT([OSU-Micro-Benchmarks], [4.3], [mvapich-discuss@cse.ohio-state.edu])
+AC_INIT([OSU-Micro-Benchmarks], [4.4], [mvapich-discuss@cse.ohio-state.edu])
 AC_CONFIG_SRCDIR([mpi/pt2pt/osu_latency.c])
 
 AM_INIT_AUTOMAKE([foreign])
@@ -63,7 +63,6 @@ AC_CHECK_HEADERS([stdlib.h string.h sys/time.h unistd.h])
 AC_C_INLINE
 
 # Checks for library functions.
-AC_FUNC_MALLOC
 AC_CHECK_FUNCS([getpagesize gettimeofday memset sqrt])
 AC_CHECK_FUNC([MPI_Init], [mpi_library=true])
 AC_CHECK_FUNC([MPI_Accumulate], [mpi2_library=true])

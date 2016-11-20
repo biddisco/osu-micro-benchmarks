@@ -1,3 +1,24 @@
+OSU Micro Benchmarks v4.4 (8/23/14)
+* New Features & Enhancements
+    - Support for MPI-3 RMA (one-sided) and atomic operations using GPU buffers
+        * osu_acc_latency
+        * osu_cas_latency
+        * osu_fop_latency
+        * osu_get_bw
+        * osu_get_latency
+        * osu_put_bibw
+        * osu_put_bw
+        * osu_put_latency
+
+* Bug Fixes
+    - remove use of AC_FUNC_MALLOC to avoid undefined rpl_malloc reference
+    - add missing upc benchmarks for make dist rule
+
+OSU Micro Benchmarks v4.3.1 (6/20/14)
+* Bug Fixes
+    - Fix typo in MPI collective benchmark help message
+    - Explicitly mention that -m and -M parameters are specified in bytes
+
 OSU Micro Benchmarks v4.3 (3/24/14)
 * New Features & Enhancements
     - This new suite includes several new (or updated) benchmarks to measure
